@@ -1064,7 +1064,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 540322888}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: GroundCheck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1204,7 +1204,7 @@ GameObject:
   m_Component:
   - component: {fileID: 641300259}
   - component: {fileID: 641300260}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AttackPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1329,6 +1329,7 @@ GameObject:
   - component: {fileID: 1100466008}
   - component: {fileID: 1100466010}
   - component: {fileID: 1100466011}
+  - component: {fileID: 1100466012}
   m_Layer: 7
   m_Name: Dummy
   m_TagString: Untagged
@@ -1441,7 +1442,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -1466,10 +1467,41 @@ MonoBehaviour:
   m_GameObject: {fileID: 1100466007}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f66a672c7eecd064a8344c2c5fe86b4b, type: 3}
+  m_Script: {fileID: 11500000, guid: 80c75a9c18dd6984ea674f339b086e99, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHealth: 100
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
+  maxHealth: 50
+  stunDuration: 0.5
+  canBeStunned: 1
+  canBeKnockedBack: 1
+  knockbackStunTime: 0.15
+  hitFlashDuration: 0.1
+  hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  stunColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  deathFadeTime: 0.4
+  destroyOnDeath: 1
+  onDamaged:
+    m_PersistentCalls:
+      m_Calls: []
+  onStunned:
+    m_PersistentCalls:
+      m_Calls: []
+  onDied:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1100466012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100466007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ede9d09155c8964a85be52f51267b6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Hazard
+  damageAmount: 15
 --- !u!1 &1715137070
 GameObject:
   m_ObjectHideFlags: 0
@@ -2236,10 +2268,10 @@ GameObject:
   - component: {fileID: 1720067677}
   - component: {fileID: 1720067676}
   - component: {fileID: 1720067679}
-  - component: {fileID: 1720067680}
-  - component: {fileID: 1720067681}
   - component: {fileID: 1720067682}
-  m_Layer: 0
+  - component: {fileID: 1720067684}
+  - component: {fileID: 1720067683}
+  m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2387,7 +2419,7 @@ CapsuleCollider2D:
   m_Offset: {x: 0.07117812, y: -0.0070859594}
   m_Size: {x: 0.34905314, y: 0.98576325}
   m_Direction: 0
---- !u!114 &1720067680
+--- !u!114 &1720067682
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2396,22 +2428,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 1720067675}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 77777f6a587e44d4385b3ccb1a97fa33, type: 3}
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  moveSpeed: 7
-  jumpForce: 12
-  coyoteTime: 0.15
-  jumpBufferTime: 0.15
-  jumpCutMultiplier: 0.5
-  allowBunnyHop: 0
-  groundCheck: {fileID: 540322888}
-  checkRadius: 0.2
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  spriteFacesRight: 1
---- !u!114 &1720067681
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+  m_Actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: 
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
+--- !u!114 &1720067683
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2424,7 +2462,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   attackPoint: {fileID: 641300259}
-  attackRange: 1.5
+  attackRange: 0.5
   enemyLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -2444,7 +2482,16 @@ MonoBehaviour:
   lungeDuration: 0.1
   finisherLungeDuration: 0.15
   finisherStunTime: 0.35
---- !u!114 &1720067682
+  finisherEnemyStun: 0.5
+  airDamageMultiplier: 1.2
+  airBoostSpeed: 6
+  airAttackDuration: 0.35
+  airAttackHitDelay: 0.08
+  airEnemyStun: 0.3
+  hitKnockback: 4
+  finisherKnockback: 9
+  airKnockback: 5
+--- !u!114 &1720067684
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2453,27 +2500,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 1720067675}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Script: {fileID: 11500000, guid: e35c85571da71c34682a3c1e41ae00ae, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: -944628639613478452, guid: 30ed2c38ca055e24285ddec89c757994, type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: Player Controls
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  moveSpeed: 7
+  jumpForce: 12
+  coyoteTime: 0.15
+  jumpBufferTime: 0.15
+  jumpCutMultiplier: 0.5
+  allowBunnyHop: 0
+  groundCheck: {fileID: 540322888}
+  checkRadius: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  spriteFacesRight: 1
+  dashSpeed: 20
+  dashDuration: 0.15
+  dashCooldown: 0.6
+  maxHealth: 100
+  currentHealth: 0
+  invincibilityDuration: 1
+  hitFlashDuration: 0.15
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

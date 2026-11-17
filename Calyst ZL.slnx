@@ -92,6 +92,7 @@
   <Project Path="Unity.AI.Assistant.AssetGenerators.Editor.csproj" />
   <Project Path="Unity.Tutorials.csproj" />
   <Project Path="Unity.Pipeline.IlInterpreter.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.2D.IK.Runtime.csproj" />
   <Project Path="Unity.AI.Assistant.Annotations.Editor.csproj" />
   <Project Path="Unity.AppUI.Editor.csproj" />
@@ -133,7 +134,6 @@
   <Project Path="Unity.2D.Welcome.csproj" />
   <Project Path="Unity.InternalAPIEditorBridge.007.csproj" />
   <Project Path="Unity.PlasticSCM.Editor.Entities.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.2D.Animation.Profiler.csproj" />
   <Project Path="Unity.AI.Generators.Contexts.csproj" />
   <Project Path="Unity.AI.Generators.IO.Srp.csproj" />

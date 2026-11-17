@@ -110,6 +110,12 @@ public class PlayerMovement : MonoBehaviour
 
     void HandleJump()
     {
+        if (IsStunned)
+        {
+            jumpBufferCounter = 0f;
+            return;
+        }
+        
         if (jumpPressed || (allowBunnyHop && jumpHeld))
             jumpBufferCounter = jumpBufferTime;
         else
