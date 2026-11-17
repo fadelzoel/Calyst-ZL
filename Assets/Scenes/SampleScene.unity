@@ -2273,6 +2273,7 @@ GameObject:
   - component: {fileID: 1720067684}
   - component: {fileID: 1720067683}
   - component: {fileID: 1720067685}
+  - component: {fileID: 1720067686}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -2546,6 +2547,38 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1720067686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1720067675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b34313d3ba3641c42957ee0be925031f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkills
+  currentWeapon: 0
+  overloadMeter: 0
+  overloadDecayPerSecond: 3
+  arcClawSpeedMultiplier: 0.85
+  skill1Cooldown: 5
+  skill2Cooldown: 8
+  firePoint: {fileID: 0}
+  waveSpeed: 18
+  waveLifetime: 0.6
+  waveDamage: 20
+  skill1OverloadCost: 8
+  flurryDuration: 0.45
+  flurryHits: 4
+  flurryRange: 1.4
+  damagePerSlash: 12
+  slowMoScale: 0.35
+  skill2OverloadCost: 15
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
