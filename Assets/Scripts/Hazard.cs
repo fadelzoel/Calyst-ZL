@@ -4,17 +4,12 @@ public class Hazard : MonoBehaviour
 {
     public float damageAmount = 15f;
 
-    // OnTriggerStay2D runs every frame the player is inside the trigger
+    // Runs every frame the player is inside the trigger.
+    // PlayerController.TakeDamage already ignores damage while dashing or in i-frames.
     void OnTriggerStay2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            PlayerController stats = other.GetComponent<PlayerController>();
-            if (stats != null)
-            {
-                // We will check if the player is dashing later, but for now, just deal damage
-                stats.TakeDamage(damageAmount);
-            }
-        }
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player != null)
+            player.TakeDamage(damageAmount);
     }
 }

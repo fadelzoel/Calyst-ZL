@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -44,8 +45,14 @@ public class PlayerController : MonoBehaviour
     public bool IsDead { get; private set; }
     public bool IsDashing => isDashing;
 
+    /// <summary>True while a PlayerSkills skill is playing (root the player, no dash/jump/attack).</summary>
+    public bool IsSkillLocked => skills != null && skills.IsUsingSkill;
+
     /// <summary>True while dashing or during post-hit i-frames.</summary>
     public bool IsInvincible => isDashing || isHurtInvincible;
+
+    // Ignores the few frames right after takeoff where the ground check still overlaps the floor
+    public bool IsGrounded => isGrounded && Time.time > lastJumpTime + 0.1f;
 
     // Components
     private Rigidbody2D rb;
@@ -53,6 +60,9 @@ public class PlayerController : MonoBehaviour
     private PlayerCombat combat;
     private CapsuleCollider2D capsule;
     private float baseOffsetX;
+    private Animator anim;
+    private PlayerSkills skills;
+    private readonly HashSet<string> animParams = new HashSet<string>();
 
     // Movement state
     private bool isGrounded;
@@ -62,12 +72,12 @@ public class PlayerController : MonoBehaviour
     private bool jumpReleased;
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
+    private float lastJumpTime = -10f;
 
     // Dash state
     private float dashTimer;
     private float dashCooldownTimer;
     private bool isDashing;
-    public bool IsGrounded => isGrounded;
 
     // Lunge / stun state
     private float lungeTimer;
@@ -82,6 +92,13 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponentInChildren<SpriteRenderer>();
+        anim = GetComponentInChildren<Animator>();
+        skills = GetComponent<PlayerSkills>();
+
+        // Remember which animator parameters exist so optional triggers (Hit, Die, Dash...) never spam warnings
+        if (anim != null && anim.runtimeAnimatorController != null)
+            foreach (AnimatorControllerParameter p in anim.parameters)
+                animParams.Add(p.name);
         combat = GetComponent<PlayerCombat>();
 
         capsule = GetComponent<CapsuleCollider2D>();
@@ -121,6 +138,7 @@ public class PlayerController : MonoBehaviour
             && dashCooldownTimer <= 0f
             && !isDashing
             && !IsStunned
+            && !IsSkillLocked
             && (combat == null || !combat.IsAttacking))
         {
             StartDash();
@@ -130,13 +148,14 @@ public class PlayerController : MonoBehaviour
     // ---------- Update ----------
     void Update()
     {
-        
-
         if (!IsDead)
         {
             UpdateFacing();
             HandleJump();
         }
+
+        UpdateAnimator();
+        
 
         jumpPressed = false;
         jumpReleased = false;
@@ -171,6 +190,10 @@ public class PlayerController : MonoBehaviour
             xVel = 0f;
             stunTimer -= Time.fixedDeltaTime;
         }
+        else if (IsSkillLocked)
+        {
+            xVel = 0f; // rooted while a skill plays
+        }
         else if (combat != null && combat.IsAttacking)
         {
             xVel = 0f; // rooted during the combo (lunges above still move her)
@@ -188,7 +211,7 @@ public class PlayerController : MonoBehaviour
     void UpdateFacing()
     {
         if (isDashing) return; // lock direction during dash
-        if (combat != null && combat.IsAttacking) return;
+        if ((combat != null && combat.IsAttacking) || IsSkillLocked) return;
 
         if (moveInput.x > 0.1f) Facing = 1;
         else if (moveInput.x < -0.1f) Facing = -1;
@@ -206,8 +229,32 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------- Jump ----------
+    void UpdateAnimator()
+    {
+        if (anim == null) return;
+
+        bool isAttacking = combat != null && combat.IsAttacking;
+        float animSpeed = (!IsGrounded || IsDead || IsStunned || isAttacking || IsSkillLocked)
+            ? 0f
+            : Mathf.Abs(moveInput.x);
+
+        anim.SetFloat("Speed", animSpeed);
+        anim.SetBool("IsGrounded", IsGrounded);
+        anim.SetFloat("VerticalVelocity", rb.linearVelocity.y);
+    }
+
+    /// <summary>Fires an animator trigger only if the controller actually has it.</summary>
+    public void PlayTrigger(string triggerName)
+    {
+        if (anim != null && animParams.Contains(triggerName))
+            anim.SetTrigger(triggerName);
+    }
+
     void HandleJump()
     {
+        // No jumping out of attacks, stuns or skills (the press still gets buffered)
+        bool canJump = !IsStunned && !IsSkillLocked && (combat == null || !combat.IsAttacking);
+
         if (jumpPressed || (allowBunnyHop && jumpHeld))
             jumpBufferCounter = jumpBufferTime;
         else
@@ -220,13 +267,14 @@ public class PlayerController : MonoBehaviour
 
         bool alreadyCut = false;
 
-        if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
+        if (canJump && jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
 
             jumpBufferCounter = 0f;
             coyoteTimeCounter = 0f;
             isGrounded = false;
+            lastJumpTime = Time.time;
 
             if (!jumpHeld)
             {
@@ -235,7 +283,8 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (jumpReleased && !alreadyCut)
+        // canJump also stops a jump release from halving the air-attack boost
+        if (jumpReleased && !alreadyCut && canJump)
             CutJump();
     }
 
@@ -253,6 +302,7 @@ public class PlayerController : MonoBehaviour
         dashCooldownTimer = dashCooldown;
         lungeTimer = 0f;
         RefreshColor();
+        PlayTrigger("Dash");
     }
 
     void EndDash()
@@ -294,6 +344,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            PlayTrigger("Hit");
             StartCoroutine(HurtRoutine());
         }
     }
@@ -326,6 +377,7 @@ public class PlayerController : MonoBehaviour
         stunTimer = 0f;
         moveInput = Vector2.zero;
 
+        PlayTrigger("Die");
         Debug.Log("Player Died! (Game Over logic will go here later)");
         RefreshColor();
     }

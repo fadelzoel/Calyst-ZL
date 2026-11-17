@@ -16,6 +16,8 @@ public class EnemyStats : MonoBehaviour, IDamageable
     public bool canBeKnockedBack = true;
     [Tooltip("Brief hit-stun after a knockback. AI should not move while IsStunned.")]
     public float knockbackStunTime = 0.15f;
+    [Tooltip("How long a knockback slide plays before a stun freezes the enemy in place.")]
+    public float knockbackSlideTime = 0.12f;
 
     [Header("Hit Feedback")]
     public float hitFlashDuration = 0.1f;
@@ -48,6 +50,9 @@ public class EnemyStats : MonoBehaviour, IDamageable
     private float flashTimer;
     private bool isFrozen;
 
+    private float knockbackEndTime;
+    private bool freezeWhenSlideEnds;
+
     void Awake()
     {
         CurrentHealth = maxHealth;
@@ -70,6 +75,10 @@ public class EnemyStats : MonoBehaviour, IDamageable
 
         if (stunTimer > 0f)
         {
+            // A stun that arrived mid-knockback freezes once the slide is over
+            if (freezeWhenSlideEnds && !isFrozen && Time.time >= knockbackEndTime)
+                Freeze();
+
             stunTimer -= Time.deltaTime;
             if (stunTimer <= 0f) EndStun();
         }
@@ -100,22 +109,31 @@ public class EnemyStats : MonoBehaviour, IDamageable
 
         // Never shorten a stun that's already running
         stunTimer = Mathf.Max(stunTimer, duration);
+        freezeWhenSlideEnds = true;
 
-        if (!isFrozen && rb != null)
-        {
-            originalConstraints = rb.constraints;
-            rb.linearVelocity = Vector2.zero;
-            rb.constraints = RigidbodyConstraints2D.FreezeAll;
-            isFrozen = true;
-        }
+        // If a knockback slide is still playing, Update() will freeze us when it ends
+        if (Time.time >= knockbackEndTime)
+            Freeze();
 
         RefreshColor();
         onStunned.Invoke();
     }
 
+    void Freeze()
+    {
+        if (isFrozen || rb == null) return;
+
+        originalConstraints = rb.constraints;
+        rb.linearVelocity = Vector2.zero;
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        isFrozen = true;
+        RefreshColor();
+    }
+
     void EndStun()
     {
         stunTimer = 0f;
+        freezeWhenSlideEnds = false;
 
         if (isFrozen && rb != null)
             rb.constraints = originalConstraints;
@@ -130,6 +148,7 @@ public class EnemyStats : MonoBehaviour, IDamageable
         if (IsDead || !canBeKnockedBack || isFrozen || rb == null || force <= 0f) return;
 
         rb.linearVelocity = direction.normalized * force;
+        knockbackEndTime = Time.time + knockbackSlideTime;
         stunTimer = Mathf.Max(stunTimer, knockbackStunTime);
     }
 

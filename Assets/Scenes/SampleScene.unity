@@ -1024,7 +1024,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 12.01
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -1032,7 +1032,7 @@ Camera:
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
-  m_TargetEye: 0
+  m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
@@ -1475,6 +1475,7 @@ MonoBehaviour:
   canBeStunned: 1
   canBeKnockedBack: 1
   knockbackStunTime: 0.15
+  knockbackSlideTime: 0.12
   hitFlashDuration: 0.1
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   stunColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
@@ -1530,7 +1531,7 @@ Transform:
   m_GameObject: {fileID: 1715137070}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -12.3, y: -8, z: 0}
+  m_LocalPosition: {x: -12.16, y: -2.07, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2271,6 +2272,7 @@ GameObject:
   - component: {fileID: 1720067682}
   - component: {fileID: 1720067684}
   - component: {fileID: 1720067683}
+  - component: {fileID: 1720067685}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -2354,7 +2356,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 5914398779580726997, guid: 0d6aa1b59d2f39e43b805a42c617367b, type: 3}
+  m_Sprite: {fileID: -1259408508766424310, guid: 5d1e4ddadb3a6e44da41b1862cad5af9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -2416,8 +2418,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.07117812, y: -0.0070859594}
-  m_Size: {x: 0.34905314, y: 0.98576325}
+  m_Offset: {x: 0.07117812, y: 0.003096819}
+  m_Size: {x: 0.34905314, y: 0.96539783}
   m_Direction: 0
 --- !u!114 &1720067682
 MonoBehaviour:
@@ -2522,6 +2524,28 @@ MonoBehaviour:
   currentHealth: 0
   invincibilityDuration: 1
   hitFlashDuration: 0.15
+--- !u!95 &1720067685
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1720067675}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 8bec5321ce5b6d34ebdf143530bd09e6, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

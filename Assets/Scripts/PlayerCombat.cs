@@ -48,6 +48,7 @@ public class PlayerCombat : MonoBehaviour
     public bool IsAttacking => isAttacking;
 
     private PlayerController movement;
+    private Animator anim;
     private int comboStep = 0;
     private bool isAttacking = false;
     private float lastAttackEndTime;
@@ -62,6 +63,7 @@ public class PlayerCombat : MonoBehaviour
 
     void Start()
     {
+        anim = GetComponentInChildren<Animator>();
         movement = GetComponent<PlayerController>();
 
         if (attackPoint != null)
@@ -95,7 +97,7 @@ public class PlayerCombat : MonoBehaviour
 
         if (movement.IsDead) return;
 
-        bool canAttack = !isAttacking && !movement.IsDashing && !movement.IsStunned;
+        bool canAttack = !isAttacking && !movement.IsDashing && !movement.IsStunned && !movement.IsSkillLocked;
 
         if (canAttack && attackBufferCounter > 0f)
         {
@@ -134,6 +136,9 @@ public class PlayerCombat : MonoBehaviour
         bool isFinisher = comboStep == 3;
         Debug.Log("Attack Combo Step: " + comboStep);
 
+        if (anim != null)
+          anim.SetTrigger("Attack" + comboStep);
+
         float speed = comboLungeSpeeds.Length >= comboStep ? comboLungeSpeeds[comboStep - 1] : 0f;
         movement.Lunge(speed, isFinisher ? finisherLungeDuration : lungeDuration);
 
@@ -171,6 +176,7 @@ public class PlayerCombat : MonoBehaviour
         comboStep = 0; // air attack doesn't continue the ground combo
 
         Debug.Log("Air Attack!");
+        movement.PlayTrigger("AirAttack");
 
         // Small hop + lock horizontal control while she swings
         movement.AirBoost(airBoostSpeed);
