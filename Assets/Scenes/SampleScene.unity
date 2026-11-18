@@ -2263,6 +2263,10 @@ PrefabInstance:
       value: 128
       objectReference: {fileID: 0}
     - target: {fileID: 7009139782382200491, guid: d8ff9a991828fb942a68daeda2498466, type: 3}
+      propertyPath: judgementSlashPrefab
+      value: 
+      objectReference: {fileID: 868690387345118757, guid: 5576a17ce5cd22246b12996646219af8, type: 3}
+    - target: {fileID: 7009139782382200491, guid: d8ff9a991828fb942a68daeda2498466, type: 3}
       propertyPath: timeStopOverloadPerSecond
       value: 10
       objectReference: {fileID: 0}

@@ -28,7 +28,8 @@ public class PlayerSkills : MonoBehaviour
     private float skill2Timer;
 
     [Header("Katana Skill 1: Ranged Energy Wave")]
-    public Transform firePoint; // Can reuse your existing AttackPoint!
+    public GameObject wavePrefab;          // <-- ADD THIS
+    public Transform firePoint;
     public float waveSpeed = 18f;
     public float waveLifetime = 0.6f;
     public int waveDamage = 20;
@@ -37,6 +38,9 @@ public class PlayerSkills : MonoBehaviour
     public float waveTimeStopHangDistance = 1.5f;
 
     [Header("Katana Skill 2: Judgement Cut")]
+    public GameObject judgementSlashPrefab; // <-- ADD THIS
+    public float judgementSlashDuration = 0.25f;
+    public bool randomJudgementAngle = true;
     [Tooltip("Every enemy inside this radius gets cut.")]
     public float judgementRange = 6f;
     public int judgementHits = 4;
@@ -47,7 +51,6 @@ public class PlayerSkills : MonoBehaviour
     public int damagePerSlash = 12;
     public float skill2OverloadCost = 15f;
     public LayerMask enemyLayers;
-
     [Header("Chrono-Spear Skill 1: Spear Throw (1 ammo)")]
     public int spearAmmo = 1;
     public int spearMaxAmmo = 1;
@@ -284,20 +287,31 @@ public class PlayerSkills : MonoBehaviour
         int dir = movement.Facing;
         Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + Vector3.right * dir * 0.6f;
 
-        GameObject wave = new GameObject("KatanaEnergyWave_Placeholder");
-        wave.transform.position = spawnPos;
+        GameObject wave;
+        if (wavePrefab != null)
+        {
+            wave = Instantiate(wavePrefab, spawnPos, Quaternion.identity);
+            Vector3 scale = wave.transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * dir;
+            wave.transform.localScale = scale;
+        }
+        else
+        {
+            wave = new GameObject("KatanaEnergyWave_Placeholder");
+            wave.transform.position = spawnPos;
 
-        LineRenderer lr = wave.AddComponent<LineRenderer>();
-        lr.positionCount = 3;
-        lr.startWidth = 0.08f;
-        lr.endWidth = 0.08f;
-        lr.material = LineMat();
-        lr.startColor = Color.cyan;
-        lr.endColor = Color.white;
-        lr.useWorldSpace = false;
-        lr.SetPosition(0, new Vector3(-0.15f * dir, 0.45f, 0f));
-        lr.SetPosition(1, new Vector3(0.15f * dir, 0f, 0f));
-        lr.SetPosition(2, new Vector3(-0.15f * dir, -0.45f, 0f));
+            LineRenderer lr = wave.AddComponent<LineRenderer>();
+            lr.positionCount = 3;
+            lr.startWidth = 0.08f;
+            lr.endWidth = 0.08f;
+            lr.material = LineMat();
+            lr.startColor = Color.cyan;
+            lr.endColor = Color.white;
+            lr.useWorldSpace = false;
+            lr.SetPosition(0, new Vector3(-0.15f * dir, 0.45f, 0f));
+            lr.SetPosition(1, new Vector3(0.15f * dir, 0f, 0f));
+            lr.SetPosition(2, new Vector3(-0.15f * dir, -0.45f, 0f));
+        }
 
         bool firedDuringStop = TimeStop.Active;
 
@@ -415,6 +429,18 @@ public class PlayerSkills : MonoBehaviour
 
     void SpawnSlashLine(Vector3 center)
     {
+        if (judgementSlashPrefab != null)
+        {
+            Quaternion rot = randomJudgementAngle
+                ? Quaternion.Euler(0f, 0f, Random.Range(0f, 360f))
+                : Quaternion.identity;
+
+            GameObject slash = Instantiate(judgementSlashPrefab, center, rot);
+            Destroy(slash, judgementSlashDuration);
+            return;
+        }
+
+        // Fallback placeholder if no prefab is assigned
         float ang = Random.Range(0f, 180f) * Mathf.Deg2Rad;
         Vector3 d = new Vector3(Mathf.Cos(ang), Mathf.Sin(ang), 0f) * 0.9f;
 

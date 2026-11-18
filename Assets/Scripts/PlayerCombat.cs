@@ -34,6 +34,7 @@ public class PlayerCombat : MonoBehaviour
     public float finisherEnemyStun = 0.5f;
 
     [Header("Air Attack (1 per airtime)")]
+    public GameObject airSlashPrefab;
     public float airDamageMultiplier = 1.2f;
     [Tooltip("Upward speed set when the air attack starts. Jump force is 12, so keep this lower.")]
     public float airBoostSpeed = 6f;
@@ -215,6 +216,17 @@ public class PlayerCombat : MonoBehaviour
 
         Debug.Log("Air Attack!");
         movement.PlayTrigger("AirAttack");
+
+        if (airSlashPrefab != null && attackPoint != null)
+        {
+            GameObject vfx = Instantiate(airSlashPrefab, attackPoint.position, Quaternion.identity);
+            Vector3 scale = vfx.transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * movement.Facing;
+            vfx.transform.localScale = scale;
+            Destroy(vfx, airAttackDuration);
+        }
+
+        
 
         // Small hop + lock horizontal control while she swings
         movement.AirBoost(airBoostSpeed);
