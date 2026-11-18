@@ -38,10 +38,19 @@ public class PlayerController : MonoBehaviour
     public float invincibilityDuration = 1f;
     public float hitFlashDuration = 0.15f;
 
+    [Header("Hurt Reaction (hit-stop, then knockback)")]
+    [Tooltip("Screen freeze when hit, in real seconds. Plays the 'Hit' animation. 0 = off.")]
+    public float hitStopDuration = 0.08f;
+    [Tooltip("Horizontal speed of the knockback. Plays the 'Knockback' animation.")]
+    public float hurtKnockbackSpeed = 7f;
+    public float hurtKnockbackUp = 4f;
+    public float hurtKnockbackDuration = 0.25f;
+
     /// <summary>1 = facing right, -1 = facing left. Read by PlayerCombat.</summary>
     public int Facing { get; private set; } = 1;
 
-    public bool IsStunned => stunTimer > 0f;
+    /// <summary>Stunned, in hurt knockback, or frozen by hit-stop.</summary>
+    public bool IsStunned => stunTimer > 0f || knockbackTimer > 0f || isHitStopped;
     public bool IsDead { get; private set; }
     public bool IsDashing => isDashing;
 
@@ -50,7 +59,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>True while dashing or during post-hit i-frames.</summary>
     // Make the player invincible while attacking!
-     public bool IsInvincible => isDashing || isHurtInvincible || attackInvincibilityTimer > 0f;
+    public bool IsInvincible => isDashing || isHurtInvincible || attackInvincibilityTimer > 0f;
     private float attackInvincibilityTimer;
 
     // Ignores the few frames right after takeoff where the ground check still overlaps the floor
@@ -58,6 +67,7 @@ public class PlayerController : MonoBehaviour
 
     // Components
     private Rigidbody2D rb;
+    private float baseGravityScale;
     private SpriteRenderer sr;
     private PlayerCombat combat;
     private CapsuleCollider2D capsule;
@@ -86,16 +96,23 @@ public class PlayerController : MonoBehaviour
     private float lungeSpeed;
     private float stunTimer;
 
-    // Health state
+    // Health / hurt state
     private bool isHurtInvincible;
     private bool isHitFlashing;
+    private Coroutine hurtCo;
+    private bool isHitStopped;
+    private float hitStopPrevScale = 1f;
+    private float knockbackTimer;
+    private float knockbackVelX;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        if (rb != null) baseGravityScale = rb.gravityScale;
         sr = GetComponentInChildren<SpriteRenderer>();
         anim = GetComponentInChildren<Animator>();
         skills = GetComponent<PlayerSkills>();
+        
 
         // Remember which animator parameters exist so optional triggers (Hit, Die, Dash...) never spam warnings
         if (anim != null && anim.runtimeAnimatorController != null)
@@ -108,6 +125,12 @@ public class PlayerController : MonoBehaviour
             baseOffsetX = capsule.offset.x;
 
         currentHealth = maxHealth;
+    }
+
+    void OnDisable()
+    {
+        ReleaseHitStop(); // never leave the game frozen
+        if (rb != null) rb.gravityScale = baseGravityScale;
     }
 
     // ---------- Input callbacks ----------
@@ -150,6 +173,9 @@ public class PlayerController : MonoBehaviour
     // ---------- Update ----------
     void Update()
     {
+
+        
+        
         if (!IsDead)
         {
             UpdateFacing();
@@ -157,62 +183,75 @@ public class PlayerController : MonoBehaviour
         }
 
         UpdateAnimator();
-        
 
         jumpPressed = false;
         jumpReleased = false;
 
         if (dashCooldownTimer > 0f)
             dashCooldownTimer -= Time.deltaTime;
+
+        if (attackInvincibilityTimer > 0f)
+            attackInvincibilityTimer -= Time.deltaTime;
+            
     }
 
     void FixedUpdate()
-    {
-        float xVel;
+        {
+            float xVel;
+            rb.gravityScale = baseGravityScale;
 
-        if (IsDead)
-        {
-            xVel = 0f;
-        }
-        else if (isDashing)
-        {
-            xVel = dashSpeed * Facing;
-            dashTimer -= Time.fixedDeltaTime;
+            if (IsDead)
+            {
+                xVel = 0f;
+            }
+            else if (knockbackTimer > 0f)
+            {
+                xVel = knockbackVelX;
+                knockbackTimer -= Time.fixedDeltaTime;
+            }
+            else if (isDashing)
+            {
+                xVel = dashSpeed * Facing;
+                dashTimer -= Time.fixedDeltaTime;
 
-            if (dashTimer <= 0f)
-                EndDash();
-        }
-        else if (lungeTimer > 0f)
-        {
-            xVel = lungeSpeed * Facing;
-            lungeTimer -= Time.fixedDeltaTime;
-        }
-        else if (stunTimer > 0f)
-        {
-            xVel = 0f;
-            stunTimer -= Time.fixedDeltaTime;
-        }
-        else if (IsSkillLocked)
-        {
-            xVel = 0f; // rooted while a skill plays
-        }
-        else if (combat != null && combat.IsAttacking)
-        {
-            xVel = 0f; // rooted during the combo (lunges above still move her)
-        }
-        else
-        {
-            xVel = moveInput.x * moveSpeed;
-        }
+                if (dashTimer <= 0f)
+                    EndDash();
+            }
+            else if (IsSkillLocked)
+            {
+                if (stunTimer > 0f) stunTimer -= Time.fixedDeltaTime;
+                rb.gravityScale = 0f;
+                rb.linearVelocity = Vector2.zero;
+                isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
+                return;
+            }
+            else if (lungeTimer > 0f)
+            {
+                xVel = lungeSpeed * Facing;
+                lungeTimer -= Time.fixedDeltaTime;
+            }
+            else if (stunTimer > 0f)
+            {
+                xVel = 0f;
+                stunTimer -= Time.fixedDeltaTime;
+            }
+            else if (combat != null && combat.IsAttacking)
+            {
+                xVel = 0f; // rooted during the combo (lunges above still move her)
+            }
+            else
+            {
+                xVel = moveInput.x * moveSpeed;
+            }
 
-        rb.linearVelocity = new Vector2(xVel, rb.linearVelocity.y);
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
-    }
-
+            rb.linearVelocity = new Vector2(xVel, rb.linearVelocity.y);
+            isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
+        }
     // ---------- Facing ----------
     void UpdateFacing()
     {
         if (isDashing) return; // lock direction during dash
+        if (knockbackTimer > 0f || isHitStopped) return; // no turning while being hit
         if ((combat != null && combat.IsAttacking) || IsSkillLocked) return;
 
         if (moveInput.x > 0.1f) Facing = 1;
@@ -230,7 +269,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ---------- Jump ----------
+    // ---------- Animator ----------
     void UpdateAnimator()
     {
         if (anim == null) return;
@@ -252,6 +291,7 @@ public class PlayerController : MonoBehaviour
             anim.SetTrigger(triggerName);
     }
 
+    // ---------- Jump ----------
     void HandleJump()
     {
         // No jumping out of attacks, stuns or skills (the press still gets buffered)
@@ -322,7 +362,7 @@ public class PlayerController : MonoBehaviour
 
     public void Stun(float duration)
     {
-        stunTimer = duration;
+        stunTimer = Mathf.Max(stunTimer, duration);
         lungeTimer = 0f; // stun cancels any leftover lunge
         if (isDashing) EndDash();
     }
@@ -333,7 +373,14 @@ public class PlayerController : MonoBehaviour
     }
 
     // ---------- Health ----------
+    /// <summary>No source given (e.g. old code): knocks the player backwards relative to facing.</summary>
     public void TakeDamage(float amount)
+    {
+        TakeDamage(amount, transform.position + new Vector3(Facing, 0f, 0f));
+    }
+
+    /// <summary>sourcePosition = where the hit came from; the player is knocked away from it.</summary>
+    public void TakeDamage(float amount, Vector2 sourcePosition)
     {
         if (IsDead || IsInvincible) return;
 
@@ -346,16 +393,44 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            PlayTrigger("Hit");
-            StartCoroutine(HurtRoutine());
+            if (hurtCo != null) StopCoroutine(hurtCo);
+            hurtCo = StartCoroutine(HurtRoutine(sourcePosition));
         }
     }
 
-    IEnumerator HurtRoutine()
+    IEnumerator HurtRoutine(Vector2 source)
     {
         isHurtInvincible = true;
         isHitFlashing = true;
         RefreshColor();
+
+        // Skills can't be interrupted; everything else gets the full hit reaction
+        if (!IsSkillLocked)
+        {
+            if (combat != null) combat.InterruptAttack();
+            lungeTimer = 0f;
+
+            // ---- Phase 1: screen lag + hit animation ----
+            PlayTrigger("Hit");
+
+            if (hitStopDuration > 0f)
+            {
+                isHitStopped = true;
+                hitStopPrevScale = Time.timeScale;
+                Time.timeScale = 0f;
+                yield return new WaitForSecondsRealtime(hitStopDuration);
+                ReleaseHitStop();
+            }
+
+            // ---- Phase 2: knockback + knockback animation ----
+            float dx = transform.position.x - source.x;
+            float dir = Mathf.Abs(dx) < 0.05f ? -Facing : Mathf.Sign(dx);
+
+            knockbackVelX = dir * hurtKnockbackSpeed;
+            knockbackTimer = hurtKnockbackDuration;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, hurtKnockbackUp);
+            PlayTrigger("Knockback");
+        }
 
         float flash = Mathf.Min(hitFlashDuration, invincibilityDuration);
         yield return new WaitForSeconds(flash);
@@ -368,15 +443,29 @@ public class PlayerController : MonoBehaviour
         isHurtInvincible = false;
     }
 
+    void ReleaseHitStop()
+    {
+        if (!isHitStopped) return;
+        isHitStopped = false;
+
+        // Only restore if nothing else changed the time scale in the meantime
+        if (Mathf.Approximately(Time.timeScale, 0f))
+            Time.timeScale = hitStopPrevScale <= 0f ? 1f : hitStopPrevScale;
+    }
+
     void Die()
     {
         IsDead = true;
-        StopAllCoroutines();
+        if (hurtCo != null) StopCoroutine(hurtCo);
+        ReleaseHitStop();
+        if (combat != null) combat.InterruptAttack();
+
         isHurtInvincible = false;
         isHitFlashing = false;
         isDashing = false;
         lungeTimer = 0f;
         stunTimer = 0f;
+        knockbackTimer = 0f;
         moveInput = Vector2.zero;
 
         PlayTrigger("Die");
@@ -395,7 +484,13 @@ public class PlayerController : MonoBehaviour
         else sr.color = Color.white;
     }
 
-        public void TriggerAttackInvincibility(float duration)
+    /// <summary>Extra invincibility that never shortens an existing one (used by burnout).</summary>
+    public void GrantInvincibility(float duration)
+    {
+        attackInvincibilityTimer = Mathf.Max(attackInvincibilityTimer, duration);
+    }
+
+    public void TriggerAttackInvincibility(float duration)
     {
         attackInvincibilityTimer = duration;
     }

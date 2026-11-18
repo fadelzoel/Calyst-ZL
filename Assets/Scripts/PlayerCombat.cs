@@ -168,7 +168,13 @@ public class PlayerCombat : MonoBehaviour
 
         SpawnSlashVFX(comboStep);
         float speed = comboLungeSpeeds.Length >= comboStep ? comboLungeSpeeds[comboStep - 1] : 0f;
-        movement.Lunge(speed, isFinisher ? finisherLungeDuration : lungeDuration);
+        float currentLungeDuration = isFinisher ? finisherLungeDuration : lungeDuration;
+        movement.Lunge(speed, currentLungeDuration);
+
+        if (isFinisher || TimeStop.Active)
+            movement.TriggerAttackInvincibility(currentLungeDuration + 0.05f);
+        
+        
 
         yield return new WaitForSeconds(hitDelay);
 
@@ -234,6 +240,16 @@ public class PlayerCombat : MonoBehaviour
 
         isAttacking = false;
         lastAttackEndTime = Time.time;
+    }
+
+    /// <summary>Called by PlayerController when she gets hit mid-attack.</summary>
+    public void InterruptAttack()
+    {
+        StopAllCoroutines();
+        isAttacking = false;
+        attackBufferCounter = 0f;
+        lastAttackEndTime = Time.time;
+        if (attackBox != null) attackBox.enabled = false;
     }
 
     // ---------- Damage ----------

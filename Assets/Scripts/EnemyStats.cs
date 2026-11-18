@@ -19,6 +19,14 @@ public class EnemyStats : MonoBehaviour, IDamageable
     [Tooltip("How long a knockback slide plays before a stun freezes the enemy in place.")]
     public float knockbackSlideTime = 0.12f;
 
+    [Header("Time Stop")]
+    public Color timeStopColor = new Color(0.6f, 0.75f, 1f, 1f);
+    [Tooltip("Cap on the knockback speed stored while time is stopped (hits stack up to this).")]
+    public float maxStoredKnockback = 30f;
+    [Tooltip("How long the released knockback slides before any leftover stun freezes the enemy.")]
+    public float releaseSlideTime = 0.3f;
+    public float releaseStunTime = 0.4f;
+
     [Header("Hit Feedback")]
     public float hitFlashDuration = 0.1f;
     public Color hitFlashColor = Color.white;
@@ -53,6 +61,12 @@ public class EnemyStats : MonoBehaviour, IDamageable
     private float knockbackEndTime;
     private bool freezeWhenSlideEnds;
 
+    // Time stop state
+    private bool timeFrozen;
+    private Vector2 savedVelocity;
+    private Vector2 storedKnockback;
+    private RigidbodyConstraints2D preTimeConstraints;
+
     void Awake()
     {
         CurrentHealth = maxHealth;
@@ -63,15 +77,34 @@ public class EnemyStats : MonoBehaviour, IDamageable
         if (rb != null) originalConstraints = rb.constraints;
     }
 
+    void OnEnable()
+    {
+        TimeStop.Started += OnTimeStopStarted;
+        TimeStop.Ended += OnTimeStopEnded;
+
+        // Spawned while time is stopped
+        if (TimeStop.Active) OnTimeStopStarted();
+    }
+
+    void OnDisable()
+    {
+        TimeStop.Started -= OnTimeStopStarted;
+        TimeStop.Ended -= OnTimeStopEnded;
+    }
+
     void Update()
     {
         if (IsDead) return;
 
+        // Flash keeps running during time stop so hits still give feedback
         if (flashTimer > 0f)
         {
             flashTimer -= Time.deltaTime;
             if (flashTimer <= 0f) RefreshColor();
         }
+
+        // Stun is paused while time is stopped
+        if (timeFrozen) return;
 
         if (stunTimer > 0f)
         {
@@ -82,6 +115,62 @@ public class EnemyStats : MonoBehaviour, IDamageable
             stunTimer -= Time.deltaTime;
             if (stunTimer <= 0f) EndStun();
         }
+    }
+
+    // ---------- Time stop ----------
+    void OnTimeStopStarted()
+    {
+        if (IsDead || timeFrozen) return;
+
+        timeFrozen = true;
+        storedKnockback = Vector2.zero;
+
+        if (rb != null)
+        {
+            savedVelocity = isFrozen ? Vector2.zero : rb.linearVelocity;
+            preTimeConstraints = isFrozen ? originalConstraints : rb.constraints;
+            rb.linearVelocity = Vector2.zero;
+            rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        }
+
+        RefreshColor();
+    }
+
+    void OnTimeStopEnded()
+    {
+        if (!timeFrozen) return;
+        timeFrozen = false;
+        if (IsDead) return;
+
+        if (rb != null)
+        {
+            bool wasStunFrozen = isFrozen;
+
+            // If a stun froze us, keep FreezeAll; otherwise restore the normal constraints
+            if (!isFrozen) rb.constraints = preTimeConstraints;
+
+            if (storedKnockback.sqrMagnitude > 0.01f)
+            {
+                // Release the stored hits: break the stun-freeze so we can actually fly
+                if (isFrozen)
+                {
+                    rb.constraints = originalConstraints;
+                    isFrozen = false;
+                }
+
+                rb.linearVelocity = Vector2.ClampMagnitude(storedKnockback, maxStoredKnockback);
+                knockbackEndTime = Time.time + releaseSlideTime;
+                stunTimer = Mathf.Max(stunTimer, releaseStunTime);
+                freezeWhenSlideEnds = wasStunFrozen; // leftover stun re-freezes after the slide
+            }
+            else if (!isFrozen)
+            {
+                rb.linearVelocity = savedVelocity;
+            }
+        }
+
+        storedKnockback = Vector2.zero;
+        RefreshColor();
     }
 
     // ---------- Damage ----------
@@ -123,7 +212,7 @@ public class EnemyStats : MonoBehaviour, IDamageable
     {
         if (isFrozen || rb == null) return;
 
-        originalConstraints = rb.constraints;
+        originalConstraints = timeFrozen ? preTimeConstraints : rb.constraints;
         rb.linearVelocity = Vector2.zero;
         rb.constraints = RigidbodyConstraints2D.FreezeAll;
         isFrozen = true;
@@ -145,7 +234,16 @@ public class EnemyStats : MonoBehaviour, IDamageable
     // ---------- Knockback ----------
     public void Knockback(Vector2 direction, float force)
     {
-        if (IsDead || !canBeKnockedBack || isFrozen || rb == null || force <= 0f) return;
+        if (IsDead || !canBeKnockedBack || rb == null || force <= 0f) return;
+
+        // Time stopped: don't move, just bank the hit. Released when time resumes.
+        if (timeFrozen)
+        {
+            storedKnockback = Vector2.ClampMagnitude(storedKnockback + direction.normalized * force, maxStoredKnockback);
+            return;
+        }
+
+        if (isFrozen) return;
 
         rb.linearVelocity = direction.normalized * force;
         knockbackEndTime = Time.time + knockbackSlideTime;
@@ -191,12 +289,13 @@ public class EnemyStats : MonoBehaviour, IDamageable
         else gameObject.SetActive(false);
     }
 
-    // ---------- Sprite color (one place so flash and stun don't fight) ----------
+    // ---------- Sprite color (one place so flash, stun and time stop don't fight) ----------
     void RefreshColor()
     {
         if (sr == null) return;
 
         if (flashTimer > 0f) sr.color = hitFlashColor;
+        else if (timeFrozen) sr.color = timeStopColor;
         else if (isFrozen) sr.color = stunColor;
         else sr.color = originalColor;
     }
