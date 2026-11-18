@@ -2466,7 +2466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   comboSlashPrefabs:
   - {fileID: 8317082645876556914, guid: ca7974c7f38e6734ea305d9dbe17b84a, type: 3}
-  - {fileID: 0}
+  - {fileID: 3146398276785630094, guid: 3526a43e8d8142746960c56ca1b5727b, type: 3}
   - {fileID: 0}
   attackPoint: {fileID: 641300259}
   attackRange: 0.5
