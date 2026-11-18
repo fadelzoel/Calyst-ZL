@@ -49,7 +49,9 @@ public class PlayerController : MonoBehaviour
     public bool IsSkillLocked => skills != null && skills.IsUsingSkill;
 
     /// <summary>True while dashing or during post-hit i-frames.</summary>
-    public bool IsInvincible => isDashing || isHurtInvincible;
+    // Make the player invincible while attacking!
+     public bool IsInvincible => isDashing || isHurtInvincible || attackInvincibilityTimer > 0f;
+    private float attackInvincibilityTimer;
 
     // Ignores the few frames right after takeoff where the ground check still overlaps the floor
     public bool IsGrounded => isGrounded && Time.time > lastJumpTime + 0.1f;
@@ -391,5 +393,10 @@ public class PlayerController : MonoBehaviour
         else if (isHitFlashing) sr.color = Color.red;
         else if (isDashing) sr.color = new Color(1f, 1f, 1f, 0.5f);
         else sr.color = Color.white;
+    }
+
+        public void TriggerAttackInvincibility(float duration)
+    {
+        attackInvincibilityTimer = duration;
     }
 }

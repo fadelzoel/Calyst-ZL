@@ -1220,8 +1220,8 @@ Transform:
   m_GameObject: {fileID: 641300258}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.435, y: 0.04, z: 0}
-  m_LocalScale: {x: 1.56, y: 1.43, z: 1}
+  m_LocalPosition: {x: 0.64, y: 0.04, z: 0}
+  m_LocalScale: {x: 2.53, y: 1.43, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1720067678}
@@ -2464,6 +2464,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9b9f35e34f895747834756d5e3f746b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
+  comboSlashPrefabs:
+  - {fileID: 8317082645876556914, guid: ca7974c7f38e6734ea305d9dbe17b84a, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
   attackPoint: {fileID: 641300259}
   attackRange: 0.5
   enemyLayers:
@@ -2475,7 +2479,7 @@ MonoBehaviour:
   - 1
   - 1.5
   hitDelay: 0.08
-  attackDuration: 0.3
+  attackDuration: 0.2
   comboResetTime: 0.8
   inputBufferTime: 0.2
   comboLungeSpeeds:
