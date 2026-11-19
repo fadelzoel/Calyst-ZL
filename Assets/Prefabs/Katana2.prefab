@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4610488748857663713}
   - component: {fileID: 702947990292255194}
   - component: {fileID: 7678880207943427782}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Katana2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
