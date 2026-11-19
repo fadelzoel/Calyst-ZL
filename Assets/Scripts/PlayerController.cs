@@ -382,7 +382,10 @@ public class PlayerController : MonoBehaviour
     /// <summary>sourcePosition = where the hit came from; the player is knocked away from it.</summary>
     public void TakeDamage(float amount, Vector2 sourcePosition)
     {
+        
         if (IsDead || IsInvincible) return;
+
+        PlayTrigger("Hurt");
 
         currentHealth -= amount;
         Debug.Log($"Player took {amount} damage! HP remaining: {currentHealth}");

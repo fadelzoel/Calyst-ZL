@@ -72,6 +72,7 @@ public class PlayerSkills : MonoBehaviour
     public float spearTimeStopHangDistance = 1.5f;
 
     [Header("Chrono-Spear Skill 2: Time Platform (air only)")]
+    public GameObject platformPrefab;
     public float spearPlatformCooldown = 3f;
     public float spearPlatformOverloadCost = 12f;
     public Vector2 platformSize = new Vector2(2.2f, 0.25f);

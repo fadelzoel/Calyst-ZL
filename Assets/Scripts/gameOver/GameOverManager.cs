@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// Menampilkan layar GAME OVER saat:
 ///   - HP player habis (PlayerController.IsDead), atau
+///   - Player menyentuh objek ber-layer "over" (lewat GameOverLayerDetector yang dipasang otomatis), atau
 ///   - GameOverManager.Trigger() dipanggil dari script mana pun (misal GameOverZone di ujung map).
 ///
 /// Layar dibuat sendiri sebagai prefab dan diletakkan di:  Assets/Resources/GameOverScreen.prefab
@@ -18,6 +19,7 @@ public class GameOverManager : MonoBehaviour
 {
     // ---------- Atur di sini ----------
     const string ScreenResourceName = "GameOverScreen";
+    public const string OverLayerName = "over";   // nama layer yang memicu game over saat disentuh player
     const float DeathDelay = 1.5f;            // detik, jeda setelah HP habis (biar animasi mati sempat main)
     const bool FreezeTimeOnShow = true;       // bekukan game saat layar Game Over tampil
 
@@ -106,6 +108,10 @@ public class GameOverManager : MonoBehaviour
     void FindPlayer()
     {
         player = FindFirstObjectByType<PlayerController>();
+
+        // Pasang detektor layer "over" otomatis ke player
+        if (player != null && player.GetComponent<GameOverLayerDetector>() == null)
+            player.gameObject.AddComponent<GameOverLayerDetector>();
     }
 
     void Update()
