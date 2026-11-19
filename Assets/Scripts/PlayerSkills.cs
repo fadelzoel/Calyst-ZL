@@ -281,18 +281,23 @@ public class PlayerSkills : MonoBehaviour
         return lineMat;
     }
 
-    // ---------- Katana Skill 1: Ranged Energy Slash (No Sprite Needed) ----------
+    // ---------- Katana Skill 1: Ranged Crescent Energy Wave ----------
     IEnumerator KatanaSkill1_EnergyWave()
     {
-        IsUsingSkill = true;
         skill1Timer = skill1Cooldown;
         AddOverload(skill1OverloadCost);
+        movement.PlayTrigger("KatanaSkill1");
+        StartCoroutine(QuickCast(0.5f));
+
+        // Brief windup so the wave spawns as her blade swings forward
+        yield return new WaitForSeconds(0.15f);
 
         int dir = movement.Facing;
         Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + Vector3.right * dir * 0.6f;
 
         GameObject wave;
-        if (wavePrefab != null)
+        bool hasPrefab = wavePrefab != null;
+        if (hasPrefab)
         {
             wave = Instantiate(wavePrefab, spawnPos, Quaternion.identity);
             Vector3 scale = wave.transform.localScale;
@@ -301,21 +306,12 @@ public class PlayerSkills : MonoBehaviour
         }
         else
         {
-            wave = new GameObject("KatanaEnergyWave_Placeholder");
+            wave = new GameObject("KatanaEnergyWave");
             wave.transform.position = spawnPos;
-
-            LineRenderer lr = wave.AddComponent<LineRenderer>();
-            lr.positionCount = 3;
-            lr.startWidth = 0.08f;
-            lr.endWidth = 0.08f;
-            lr.material = LineMat();
-            lr.startColor = Color.cyan;
-            lr.endColor = Color.white;
-            lr.useWorldSpace = false;
-            lr.SetPosition(0, new Vector3(-0.15f * dir, 0.45f, 0f));
-            lr.SetPosition(1, new Vector3(0.15f * dir, 0f, 0f));
-            lr.SetPosition(2, new Vector3(-0.15f * dir, -0.45f, 0f));
         }
+
+        EnergyWaveVFX waveVfx = wave.AddComponent<EnergyWaveVFX>();
+        waveVfx.Init(dir, hasPrefab);
 
         bool firedDuringStop = TimeStop.Active;
 
@@ -337,15 +333,16 @@ public class PlayerSkills : MonoBehaviour
             }
             else if (!firedDuringStop)
             {
-                frozen = true; // fired before the stop: frozen with everything else
+                frozen = true;
             }
             else
             {
-                // Fired during the stop: travels a short way, then hangs until time resumes
                 float left = waveTimeStopHangDistance - flown;
                 if (left <= 0f) frozen = true;
                 else step = Mathf.Min(step, left);
             }
+
+            waveVfx.isFrozen = frozen;
 
             if (!frozen)
             {
@@ -359,13 +356,14 @@ public class PlayerSkills : MonoBehaviour
                     if (target != null)
                     {
                         target.TakeDamage(waveDamage);
+                        waveVfx.SpawnImpactBurst(wave.transform.position);
                         Debug.Log($"Katana Skill 1 hit {hit.name} for {waveDamage}!");
                         Destroy(wave);
                         yield break;
                     }
                 }
 
-                elapsed += dt; // lifetime doesn't tick while frozen
+                elapsed += dt;
             }
 
             yield return null;
@@ -374,7 +372,105 @@ public class PlayerSkills : MonoBehaviour
         if (wave != null) Destroy(wave);
     }
 
+    
+    GameObject CreateEnergyWaveVisual(Vector3 spawnPos, int dir)
+    {
+        GameObject root = new GameObject("KatanaEnergyWave");
+        root.transform.position = spawnPos;
+        root.transform.localScale = new Vector3(dir, 1f, 1f);
+
+        // Tapered width curve: sharp needle tips at both ends, thick center
+        AnimationCurve bladeTaper = new AnimationCurve(
+            new Keyframe(0f, 0.05f),
+            new Keyframe(0.5f, 1f),
+            new Keyframe(1f, 0.05f)
+        );
+
+        int arcPoints = 15;
+        float arcHeight = 0.85f;
+        float arcCurveDepth = 0.42f;
+
+        // 1. Outer Cyan Aura Arc
+        GameObject outerObj = new GameObject("OuterAura");
+        outerObj.transform.SetParent(root.transform, false);
+        LineRenderer outer = outerObj.AddComponent<LineRenderer>();
+        outer.useWorldSpace = false;
+        outer.positionCount = arcPoints;
+        outer.widthCurve = bladeTaper;
+        outer.widthMultiplier = 0.28f;
+        outer.sortingOrder = 18;
+        outer.material = LineMat();
+        outer.startColor = new Color(0.1f, 0.75f, 1f, 0.85f);
+        outer.endColor = new Color(0.1f, 0.75f, 1f, 0.85f);
+
+        // 2. Inner White-Hot Slash Core
+        GameObject coreObj = new GameObject("InnerCore");
+        coreObj.transform.SetParent(root.transform, false);
+        LineRenderer core = coreObj.AddComponent<LineRenderer>();
+        core.useWorldSpace = false;
+        core.positionCount = arcPoints;
+        core.widthCurve = bladeTaper;
+        core.widthMultiplier = 0.11f;
+        core.sortingOrder = 19;
+        core.material = LineMat();
+        core.startColor = Color.white;
+        core.endColor = Color.white;
+
+        for (int i = 0; i < arcPoints; i++)
+        {
+            float t = i / (float)(arcPoints - 1);          // 0 -> 1
+            float angle = Mathf.Lerp(-65f, 65f, t) * Mathf.Deg2Rad;
+            float x = (Mathf.Cos(angle) - 0.42f) * (arcCurveDepth / 0.58f);
+            float y = Mathf.Sin(angle) * arcHeight;
+
+            outer.SetPosition(i, new Vector3(x, y, 0f));
+            core.SetPosition(i, new Vector3(x + 0.03f, y * 0.92f, 0f));
+        }
+
+        // 3. Motion Afterimage Trail
+        TrailRenderer trail = root.AddComponent<TrailRenderer>();
+        trail.time = 0.12f;
+        trail.startWidth = 0.75f;
+        trail.endWidth = 0.05f;
+        trail.sortingOrder = 17;
+        trail.material = LineMat();
+        trail.startColor = new Color(0.25f, 0.85f, 1f, 0.45f);
+        trail.endColor = new Color(0.1f, 0.5f, 1f, 0f);
+
+        return root;
+    }
+
+    void SpawnWaveImpact(Vector3 pos, int dir)
+    {
+        GameObject burst = new GameObject("WaveImpactBurst");
+        burst.transform.position = pos;
+
+        // Cross slash flash on impact
+        for (int i = 0; i < 2; i++)
+        {
+            GameObject lineObj = new GameObject("Slash" + i);
+            lineObj.transform.SetParent(burst.transform, false);
+            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.positionCount = 2;
+            lr.startWidth = 0.14f;
+            lr.endWidth = 0.02f;
+            lr.sortingOrder = 22;
+            lr.material = LineMat();
+            lr.startColor = Color.white;
+            lr.endColor = new Color(0.2f, 0.85f, 1f, 0.8f);
+
+            float ang = (i == 0 ? 32f : -32f) * Mathf.Deg2Rad;
+            Vector3 d = new Vector3(Mathf.Cos(ang) * dir, Mathf.Sin(ang), 0f) * 0.85f;
+            lr.SetPosition(0, -d);
+            lr.SetPosition(1, d);
+        }
+
+        Destroy(burst, 0.14f);
+    }
+
     // ---------- Katana Skill 2: Judgement Cut ----------
+    // ---------- Katana Skill 2: Judgement Cut (Vergil Buildup) ----------
     IEnumerator KatanaSkill2_JudgementCut()
     {
         // Mark every enemy in range first; no targets = no cost
@@ -409,7 +505,68 @@ public class PlayerSkills : MonoBehaviour
             if (es != null) es.Stun(total);
         }
 
-        yield return new WaitForSeconds(judgementWindup);
+        // --- Vergil Buildup: Dimensional Sphere + Enemy Spatial Lock-On Reticles ---
+        GameObject buildupRoot = new GameObject("JudgementBuildup_VFX");
+        LineRenderer outerDome = CreateCircleRenderer(buildupRoot.transform, "OuterDome", 64, 0.05f, new Color(0.2f, 0.65f, 1f, 0.55f));
+        LineRenderer implodingRing = CreateCircleRenderer(buildupRoot.transform, "ImplodingRing", 64, 0.1f, new Color(0.75f, 0.95f, 1f, 0.95f));
+
+        List<LineRenderer[]> targetReticles = new List<LineRenderer[]>();
+        foreach (IDamageable t in targets)
+        {
+            LineRenderer lineA = CreateLinePair(buildupRoot.transform, "LockA");
+            LineRenderer lineB = CreateLinePair(buildupRoot.transform, "LockB");
+            targetReticles.Add(new[] { lineA, lineB });
+        }
+
+        float w = 0f;
+        while (w < judgementWindup)
+        {
+            w += Time.deltaTime;
+            float u = Mathf.Clamp01(w / judgementWindup);
+            float easeIn = u * u;
+
+            Vector3 center = transform.position;
+
+            // Outer dimensional dome pulses subtly, inner ring collapses onto Caly
+            UpdateCircle(outerDome, center, judgementRange * Mathf.Lerp(1.05f, 0.96f, easeIn));
+            UpdateCircle(implodingRing, center, Mathf.Lerp(judgementRange, 0.25f, easeIn));
+            implodingRing.startWidth = Mathf.Lerp(0.04f, 0.16f, easeIn);
+            implodingRing.endWidth = implodingRing.startWidth;
+
+            // Tighten & spin spatial rift crosshairs on every marked enemy
+            float reticleSize = Mathf.Lerp(1.35f, 0.35f, easeIn);
+            float spinAngle = Mathf.Lerp(0f, 135f, easeIn) * Mathf.Deg2Rad;
+            Color lockColor = Color.Lerp(new Color(0.2f, 0.75f, 1f, 0.85f), Color.white, easeIn);
+
+            for (int idx = 0; idx < targets.Count; idx++)
+            {
+                Component c = targets[idx] as Component;
+                LineRenderer[] pair = targetReticles[idx];
+                if (c == null)
+                {
+                    pair[0].enabled = false;
+                    pair[1].enabled = false;
+                    continue;
+                }
+
+                Vector3 ePos = c.transform.position;
+                Vector3 dirA = new Vector3(Mathf.Cos(spinAngle), Mathf.Sin(spinAngle), 0f) * reticleSize;
+                Vector3 dirB = new Vector3(-dirA.y, dirA.x, 0f);
+
+                pair[0].startColor = pair[0].endColor = lockColor;
+                pair[0].SetPosition(0, ePos - dirA);
+                pair[0].SetPosition(1, ePos + dirA);
+
+                pair[1].startColor = pair[1].endColor = lockColor;
+                pair[1].SetPosition(0, ePos - dirB);
+                pair[1].SetPosition(1, ePos + dirB);
+            }
+
+            yield return null;
+        }
+
+        Destroy(buildupRoot);
+        // -------------------------------------------------------------------------
 
         // The cuts land on everyone, one after another
         for (int i = 0; i < judgementHits; i++)
@@ -429,6 +586,47 @@ public class PlayerSkills : MonoBehaviour
 
         yield return new WaitForSeconds(judgementRecovery);
         IsUsingSkill = false;
+    }
+
+    LineRenderer CreateCircleRenderer(Transform parent, string objName, int segments, float width, Color color)
+    {
+        GameObject g = new GameObject(objName);
+        g.transform.SetParent(parent);
+        LineRenderer lr = g.AddComponent<LineRenderer>();
+        lr.useWorldSpace = true;
+        lr.loop = true;
+        lr.positionCount = segments;
+        lr.startWidth = width;
+        lr.endWidth = width;
+        lr.sortingOrder = 22;
+        lr.material = LineMat();
+        lr.startColor = color;
+        lr.endColor = color;
+        return lr;
+    }
+
+    void UpdateCircle(LineRenderer lr, Vector3 center, float radius)
+    {
+        int count = lr.positionCount;
+        for (int i = 0; i < count; i++)
+        {
+            float ang = (i / (float)count) * Mathf.PI * 2f;
+            lr.SetPosition(i, center + new Vector3(Mathf.Cos(ang) * radius, Mathf.Sin(ang) * radius, 0f));
+        }
+    }
+
+    LineRenderer CreateLinePair(Transform parent, string objName)
+    {
+        GameObject g = new GameObject(objName);
+        g.transform.SetParent(parent);
+        LineRenderer lr = g.AddComponent<LineRenderer>();
+        lr.useWorldSpace = true;
+        lr.positionCount = 2;
+        lr.startWidth = 0.06f;
+        lr.endWidth = 0.06f;
+        lr.sortingOrder = 23;
+        lr.material = LineMat();
+        return lr;
     }
 
     void SpawnSlashLine(Vector3 center)
