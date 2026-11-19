@@ -68,8 +68,8 @@ public class TimePlatform : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Frozen in the air until time stops, then it glides forward like a spear
-        if (owner == null || !TimeStop.Active) return;
+        // Frozen in the air until time stops and Caly finishes her cast animation
+        if (owner == null || !TimeStop.Active || owner.IsTimeStopCasting) return;
         if (Blocked()) return;
 
         Vector2 delta = new Vector2(dir * owner.platformSpeed * Time.fixedDeltaTime, 0f);
