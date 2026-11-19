@@ -3,8 +3,6 @@ using UnityEngine;
 /// <summary>Chrono-Spear platform: hangs in the air, and only glides forward while time is stopped.</summary>
 public class TimePlatform : MonoBehaviour
 {
-    static Sprite sprite;
-
     PlayerSkills owner;
     int dir = 1;
     float age;
@@ -13,32 +11,55 @@ public class TimePlatform : MonoBehaviour
     Rigidbody2D playerRb;
     Collider2D playerCol;
 
-    public static TimePlatform Spawn(PlayerSkills owner, Vector2 pos, int dir)
+  public static TimePlatform Spawn(PlayerSkills owner, Vector2 pos, int dir)
     {
-        GameObject go = new GameObject("TimePlatform");
-        go.transform.position = pos;
-        go.transform.localScale = new Vector3(owner.platformSize.x, owner.platformSize.y, 1f);
+        GameObject go;
+
+        if (owner.platformPrefab != null)
+        {
+            go = Instantiate(owner.platformPrefab, pos, Quaternion.identity);
+        }
+        else
+        {
+            go = new GameObject("TimePlatform");
+            go.transform.position = pos;
+        }
+
+        // Apply platformSize accurately even if the prefab sprite isn't 1x1 Unity units
+        SpriteRenderer sr = go.GetComponentInChildren<SpriteRenderer>();
+        Vector2 baseSize = (sr != null && sr.sprite != null) ? (Vector2)sr.sprite.bounds.size : Vector2.one;
+        float scaleX = (owner.platformSize.x / baseSize.x) * dir;
+        float scaleY = owner.platformSize.y / baseSize.y;
+        go.transform.localScale = new Vector3(scaleX, scaleY, 1f);
 
         int layer = LayerMask.NameToLayer(owner.platformLayerName);
         if (layer >= 0) go.layer = layer;
 
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = GetSprite();
-        sr.color = new Color(0.4f, 0.8f, 1f, 0.85f);
-        sr.sortingOrder = 5;
-
-        BoxCollider2D box = go.AddComponent<BoxCollider2D>();
-        box.size = Vector2.one;
+        BoxCollider2D box = go.GetComponent<BoxCollider2D>();
+        if (box == null)
+        {
+            box = go.AddComponent<BoxCollider2D>();
+            box.size = baseSize;
+        }
         box.usedByEffector = true;
 
-        PlatformEffector2D eff = go.AddComponent<PlatformEffector2D>();
-        eff.useOneWay = true;
-        eff.surfaceArc = 170f;
+        PlatformEffector2D eff = go.GetComponent<PlatformEffector2D>();
+        if (eff == null)
+        {
+            eff = go.AddComponent<PlatformEffector2D>();
+            eff.useOneWay = true;
+            eff.surfaceArc = 170f;
+        }
 
-        Rigidbody2D body = go.AddComponent<Rigidbody2D>();
+        Rigidbody2D body = go.GetComponent<Rigidbody2D>();
+        if (body == null)
+            body = go.AddComponent<Rigidbody2D>();
         body.bodyType = RigidbodyType2D.Kinematic;
 
-        TimePlatform tp = go.AddComponent<TimePlatform>();
+        TimePlatform tp = go.GetComponent<TimePlatform>();
+        if (tp == null)
+            tp = go.AddComponent<TimePlatform>();
+
         tp.owner = owner;
         tp.dir = dir;
         tp.rb = body;
@@ -47,17 +68,6 @@ public class TimePlatform : MonoBehaviour
         tp.playerCol = owner.GetComponent<Collider2D>();
         return tp;
     }
-
-    static Sprite GetSprite()
-    {
-        if (sprite != null) return sprite;
-        Texture2D tex = new Texture2D(1, 1);
-        tex.SetPixel(0, 0, Color.white);
-        tex.Apply();
-        sprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
-        return sprite;
-    }
-
     void Update()
     {
         if (owner == null) { Destroy(gameObject); return; }
@@ -83,7 +93,7 @@ public class TimePlatform : MonoBehaviour
 
     bool Blocked()
     {
-        Vector2 size = owner.platformSize;
+        Vector2 size = col != null ? (Vector2)col.bounds.size : owner.platformSize;
         Vector2 c = rb.position + new Vector2(dir * (size.x * 0.5f + 0.06f), 0f);
 
         foreach (Collider2D h in Physics2D.OverlapBoxAll(c, new Vector2(0.08f, size.y * 0.8f), 0f, owner.StickLayers))
