@@ -12,10 +12,12 @@ public interface IDamageable
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Attack Settings")]
+    public GameObject[] comboSlashPrefabs;
     public Transform attackPoint;
     public float attackRange = 0.5f;
     public LayerMask enemyLayers;
     public int attackDamage = 10;
+    
 
     [Header("Combo Settings")]
     public float[] comboDamageMultipliers = { 1f, 1f, 1.5f };
@@ -32,6 +34,7 @@ public class PlayerCombat : MonoBehaviour
     public float finisherEnemyStun = 0.5f;
 
     [Header("Air Attack (1 per airtime)")]
+    public GameObject airSlashPrefab;
     public float airDamageMultiplier = 1.2f;
     [Tooltip("Upward speed set when the air attack starts. Jump force is 12, so keep this lower.")]
     public float airBoostSpeed = 6f;
@@ -54,6 +57,7 @@ public class PlayerCombat : MonoBehaviour
     private float lastAttackEndTime;
     private float attackBufferCounter;
     private float attackPointOffsetX;
+    private BoxCollider2D attackBox;
     private bool attackPressed;
 
     private bool airAttackUsed;
@@ -67,7 +71,13 @@ public class PlayerCombat : MonoBehaviour
         movement = GetComponent<PlayerController>();
 
         if (attackPoint != null)
+        {
             attackPointOffsetX = Mathf.Abs(attackPoint.localPosition.x);
+            attackBox = attackPoint.GetComponent<BoxCollider2D>();
+            
+            // Turn off the hitbox at the start!
+            if (attackBox != null) attackBox.enabled = false; 
+        }
     }
 
     // ---------- Input callback ----------
@@ -124,8 +134,26 @@ public class PlayerCombat : MonoBehaviour
         Vector3 pos = attackPoint.localPosition;
         pos.x = attackPointOffsetX * movement.Facing;
         attackPoint.localPosition = pos;
+
+        Vector3 scale = attackPoint.localScale;
+        scale.x = Mathf.Abs(scale.x) * movement.Facing;
+        attackPoint.localScale = scale;
     }
 
+    void SpawnSlashVFX(int step)
+    {
+        if (attackPoint == null || comboSlashPrefabs == null) return;
+        int index = step - 1;
+        if (index < 0 || index >= comboSlashPrefabs.Length || comboSlashPrefabs[index] == null) return;
+
+        GameObject vfx = Instantiate(comboSlashPrefabs[index], attackPoint.position, Quaternion.identity);
+
+        Vector3 scale = vfx.transform.localScale;
+        scale.x = Mathf.Abs(scale.x) * movement.Facing;
+        vfx.transform.localScale = scale;
+
+        Destroy(vfx, attackDuration);
+    }
     // ---------- Ground combo ----------
     IEnumerator AttackRoutine()
     {
@@ -139,8 +167,15 @@ public class PlayerCombat : MonoBehaviour
         if (anim != null)
           anim.SetTrigger("Attack" + comboStep);
 
+        SpawnSlashVFX(comboStep);
         float speed = comboLungeSpeeds.Length >= comboStep ? comboLungeSpeeds[comboStep - 1] : 0f;
-        movement.Lunge(speed, isFinisher ? finisherLungeDuration : lungeDuration);
+        float currentLungeDuration = isFinisher ? finisherLungeDuration : lungeDuration;
+        movement.Lunge(speed, currentLungeDuration);
+
+        if (isFinisher || TimeStop.Active)
+            movement.TriggerAttackInvincibility(currentLungeDuration + 0.05f);
+        
+        
 
         yield return new WaitForSeconds(hitDelay);
 
@@ -150,8 +185,12 @@ public class PlayerCombat : MonoBehaviour
             yield break;
         }
 
+        if (attackBox != null) attackBox.enabled = true;
+
         float multiplier = comboDamageMultipliers.Length >= comboStep ? comboDamageMultipliers[comboStep - 1] : 1f;
         DealDamage(multiplier, isFinisher ? finisherKnockback : hitKnockback, isFinisher ? finisherEnemyStun : 0f);
+
+        if (attackBox != null) attackBox.enabled = false;
 
         yield return new WaitForSeconds(Mathf.Max(0f, attackDuration - hitDelay));
 
@@ -166,7 +205,7 @@ public class PlayerCombat : MonoBehaviour
         lastAttackEndTime = Time.time;
     }
 
-    // ---------- Air attack ----------
+        // ---------- Air attack ----------
     IEnumerator AirAttackRoutine()
     {
         isAttacking = true;
@@ -177,6 +216,17 @@ public class PlayerCombat : MonoBehaviour
 
         Debug.Log("Air Attack!");
         movement.PlayTrigger("AirAttack");
+
+        if (airSlashPrefab != null && attackPoint != null)
+        {
+            GameObject vfx = Instantiate(airSlashPrefab, attackPoint.position, Quaternion.identity);
+            Vector3 scale = vfx.transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * movement.Facing;
+            vfx.transform.localScale = scale;
+            Destroy(vfx, airAttackDuration);
+        }
+
+        
 
         // Small hop + lock horizontal control while she swings
         movement.AirBoost(airBoostSpeed);
@@ -190,12 +240,28 @@ public class PlayerCombat : MonoBehaviour
             yield break;
         }
 
+        // TURN ON HITBOX
+        if (attackBox != null) attackBox.enabled = true;
+
         DealDamage(airDamageMultiplier, airKnockback, airEnemyStun);
+
+        // TURN OFF HITBOX
+        if (attackBox != null) attackBox.enabled = false;
 
         yield return new WaitForSeconds(Mathf.Max(0f, airAttackDuration - airAttackHitDelay));
 
         isAttacking = false;
         lastAttackEndTime = Time.time;
+    }
+
+    /// <summary>Called by PlayerController when she gets hit mid-attack.</summary>
+    public void InterruptAttack()
+    {
+        StopAllCoroutines();
+        isAttacking = false;
+        attackBufferCounter = 0f;
+        lastAttackEndTime = Time.time;
+        if (attackBox != null) attackBox.enabled = false;
     }
 
     // ---------- Damage ----------
@@ -207,11 +273,13 @@ public class PlayerCombat : MonoBehaviour
 
         int damage = Mathf.RoundToInt(attackDamage * multiplier);
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
+       Collider2D[] hits = attackBox != null
+            ? Physics2D.OverlapBoxAll(attackBox.bounds.center, attackBox.bounds.size, 0f, enemyLayers)
+            : Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);;
 
         foreach (Collider2D col in hits)
         {
-            if (col.gameObject == gameObject || col.transform.IsChildOf(transform))
+            if (col.GetComponent<PlayerController>() != null || col.GetComponentInParent<PlayerController>() != null)
                 continue;
 
             GameObject target = col.attachedRigidbody != null ? col.attachedRigidbody.gameObject : col.gameObject;

@@ -10,6 +10,6 @@ public class Hazard : MonoBehaviour
     {
         PlayerController player = other.GetComponentInParent<PlayerController>();
         if (player != null)
-            player.TakeDamage(damageAmount);
+            player.TakeDamage(damageAmount, transform.position);
     }
 }
