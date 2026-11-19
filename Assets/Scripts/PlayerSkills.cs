@@ -28,7 +28,8 @@ public class PlayerSkills : MonoBehaviour
     private float skill2Timer;
 
     [Header("Katana Skill 1: Ranged Energy Wave")]
-    public GameObject wavePrefab;          // <-- ADD THIS
+    public GameObject wavePrefab;          
+    public float waveHitRadius = 0.6f;
     public Transform firePoint;
     public float waveSpeed = 18f;
     public float waveLifetime = 0.6f;
@@ -51,7 +52,10 @@ public class PlayerSkills : MonoBehaviour
     public int damagePerSlash = 12;
     public float skill2OverloadCost = 15f;
     public LayerMask enemyLayers;
+
+
     [Header("Chrono-Spear Skill 1: Spear Throw (1 ammo)")]
+    public GameObject spearPrefab;
     public int spearAmmo = 1;
     public int spearMaxAmmo = 1;
     public float spearThrowCooldown = 12f;
@@ -348,7 +352,7 @@ public class PlayerSkills : MonoBehaviour
                 wave.transform.position += Vector3.right * (dir * step);
                 flown += step;
 
-                Collider2D hit = Physics2D.OverlapCircle(wave.transform.position, 0.35f, enemyLayers);
+                Collider2D hit = Physics2D.OverlapCircle(wave.transform.position, waveHitRadius, enemyLayers);
                 if (hit != null)
                 {
                     IDamageable target = hit.GetComponentInParent<IDamageable>();
@@ -475,9 +479,23 @@ public class PlayerSkills : MonoBehaviour
         int dir = movement.Facing;
         Vector3 pos = firePoint != null ? firePoint.position : transform.position + Vector3.right * dir * 0.6f;
 
-        GameObject go = new GameObject("ChronoSpear");
-        go.transform.position = pos;
-        go.AddComponent<SpearProjectile>().Init(this, dir);
+        GameObject go;
+        if (spearPrefab != null)
+        {
+            go = Instantiate(spearPrefab, pos, Quaternion.identity);
+            Vector3 scale = go.transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * dir;
+            go.transform.localScale = scale;
+        }
+        else
+        {
+            go = new GameObject("ChronoSpear");
+            go.transform.position = pos;
+        }
+
+        SpearProjectile proj = go.GetComponent<SpearProjectile>();
+        if (proj == null) proj = go.AddComponent<SpearProjectile>();
+        proj.Init(this, dir);
 
         movement.PlayTrigger("SpearThrow");
         StartCoroutine(QuickCast(0.15f));
