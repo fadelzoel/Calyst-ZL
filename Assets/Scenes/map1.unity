@@ -196,8 +196,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 956244911
-  m_SortingLayer: 1
+  m_SortingLayerID: 1613738521
+  m_SortingLayer: -5
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -6152073891237701880, guid: 9921670128e30764ab7084f3a7ea4e3c, type: 3}
@@ -589,8 +589,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 2131093483
-  m_SortingLayer: 3
+  m_SortingLayerID: -1922360595
+  m_SortingLayer: -3
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -6470460504253458178, guid: 9757056e65405814889483d7b048c79f, type: 3}
@@ -1077,8 +1077,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -393091039
-  m_SortingLayer: 2
+  m_SortingLayerID: 1374421887
+  m_SortingLayer: -4
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 6937817954938267909, guid: 72a840463acad2149a68353eb1a86462, type: 3}
@@ -1529,8 +1529,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 2131093483
-  m_SortingLayer: 3
+  m_SortingLayerID: -1922360595
+  m_SortingLayer: -3
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -6470460504253458178, guid: 9757056e65405814889483d7b048c79f, type: 3}
@@ -2992,8 +2992,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 956244911
-  m_SortingLayer: 1
+  m_SortingLayerID: 1613738521
+  m_SortingLayer: -5
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -6152073891237701880, guid: 9921670128e30764ab7084f3a7ea4e3c, type: 3}
@@ -3121,7 +3121,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0.39607847, b: 0.5803922, a: 0}
+  m_BackGroundColor: {r: 0.14509805, g: 0.09411766, b: 0.28627452, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -4638,8 +4638,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -1393127951
-  m_SortingLayer: 4
+  m_SortingLayerID: -591033101
+  m_SortingLayer: -2
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -4178046375966092550, guid: 282305013353f434f8999d409f132ba6, type: 3}
@@ -4915,8 +4915,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -591033101
-  m_SortingLayer: -2
+  m_SortingLayerID: -1922360595
+  m_SortingLayer: -3
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -4178046375966092550, guid: 282305013353f434f8999d409f132ba6, type: 3}
@@ -4959,7 +4959,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 1718002925}
   parallaxEffect: 0.3
 --- !u!1 &1327954821
 GameObject:
@@ -5191,8 +5191,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -1393127951
-  m_SortingLayer: 4
+  m_SortingLayerID: -591033101
+  m_SortingLayer: -2
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -4178046375966092550, guid: 282305013353f434f8999d409f132ba6, type: 3}
@@ -5328,7 +5328,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 1718002925}
   parallaxEffect: 1
 --- !u!1 &1388876518
 GameObject:
@@ -5484,8 +5484,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: -393091039
-  m_SortingLayer: 2
+  m_SortingLayerID: 1374421887
+  m_SortingLayer: -4
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 6937817954938267909, guid: 72a840463acad2149a68353eb1a86462, type: 3}
@@ -6065,7 +6065,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 1718002925}
   parallaxEffect: 0.8
 --- !u!1 &1629200987
 GameObject:
@@ -6571,7 +6571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 1718002925}
   parallaxEffect: 0.6
 --- !u!1 &1754069649
 GameObject:

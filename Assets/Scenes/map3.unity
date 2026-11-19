@@ -3490,7 +3490,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0.39607847, b: 0.5803922, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0.23137257, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -3746,7 +3746,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 374961862}
   parallaxEffect: 1
 --- !u!1 &1386354035
 GameObject:
@@ -5531,7 +5531,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 805661c13c4509340ab662bab35788e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  cam: {fileID: 0}
+  cam: {fileID: 374961862}
   parallaxEffect: 0.8
 --- !u!1 &1649512492
 GameObject:
@@ -5610,8 +5610,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 956244911
-  m_SortingLayer: 1
+  m_SortingLayerID: 1613738521
+  m_SortingLayer: -5
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 8430610198906549920, guid: cc11e84b15d75584d9c591719250fff7, type: 3}
