@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(AudioSource))]
 public class GameSoundController : MonoBehaviour
@@ -24,6 +25,14 @@ public class GameSoundController : MonoBehaviour
     [Tooltip("Turunkan volume backsound saat Time Stop aktif (opsional).")]
     public bool duckBacksoundDuringTimeStop = false;
     [Range(0f, 1f)] public float timeStopBacksoundMultiplier = 0.35f;
+
+    [Header("Portal & Scene Transition SFX")]
+    [Tooltip("Suara saat player menyentuh portal / pindah antar map.")]
+    public AudioClip mapTransitionClip;
+    [Tooltip("Jika dicentang, GameObject ini akan bertahan (DontDestroyOnLoad) agar suara portal tidak terpotong saat pindah scene.")]
+    public bool persistAcrossScenes = true;
+    [Tooltip("Jika dicentang, suara juga bunyi saat scene pertama kali dibuka.")]
+    public bool playMapTransitionOnFirstScene = false;
 
     [Header("Player Movement & Hurt SFX")]
     public AudioClip jumpClip;
@@ -67,21 +76,76 @@ public class GameSoundController : MonoBehaviour
     private WeaponType prevWeapon;
     private int comboCounter;
     private float slashSoundCooldown;
+    private int lastSceneBuildIndex = -999;
+    private bool portalSoundPlayedForCurrentTransit;
 
     private float skill1ActionCooldown;
     private float skill2ActionCooldown;
     private bool judgementAudioPlayedThisCast;
 
+    private static GameSoundController instance;
+
     void Awake()
     {
+        if (persistAcrossScenes)
+        {
+            if (instance != null && instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
         if (sfxSource == null) sfxSource = GetComponent<AudioSource>();
         if (worldSource == null) worldSource = sfxSource;
 
+        ConfigureAudioSource(sfxSource, false);
+        ConfigureAudioSource(worldSource, false);
         SetupBgmSource();
 
-        if (player == null) player = FindAnyObjectByType<PlayerController>();
-        if (combat == null) combat = FindAnyObjectByType<PlayerCombat>();
-        if (skills == null) skills = FindAnyObjectByType<PlayerSkills>();
+        RefreshSceneReferences();
+    }
+
+    void ConfigureAudioSource(AudioSource src, bool isLoop)
+    {
+        if (src == null) return;
+        src.playOnAwake = false;
+        src.loop = isLoop;
+        src.ignoreListenerPause = true;
+    }
+
+    void RefreshSceneReferences()
+    {
+        player = FindAnyObjectByType<PlayerController>();
+        combat = FindAnyObjectByType<PlayerCombat>();
+        skills = FindAnyObjectByType<PlayerSkills>();
+    }
+
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        RefreshSceneReferences();
+        SyncInitialStates();
+
+        if (lastSceneBuildIndex != -999 && scene.buildIndex != lastSceneBuildIndex && !portalSoundPlayedForCurrentTransit)
+        {
+            PlayClip(mapTransitionClip, worldSource, 1f, false);
+        }
+
+        portalSoundPlayedForCurrentTransit = false;
+        lastSceneBuildIndex = scene.buildIndex;
     }
 
     void SetupBgmSource()
@@ -106,13 +170,18 @@ public class GameSoundController : MonoBehaviour
         bgmSource.loop = loopBacksound;
         bgmSource.pitch = 1f;
         bgmSource.volume = backsoundVolume;
+        bgmSource.ignoreListenerPause = true;
         if (backsoundClip != null)
             bgmSource.clip = backsoundClip;
     }
 
     void Start()
     {
+        lastSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
         SyncInitialStates();
+
+        if (playMapTransitionOnFirstScene)
+            PlayClip(mapTransitionClip, worldSource, 1f, false);
 
         if (playBacksoundOnStart && backsoundClip != null)
             PlayBacksound(backsoundClip, loopBacksound);
@@ -147,9 +216,10 @@ public class GameSoundController : MonoBehaviour
 
     void Update()
     {
-        if (player == null) player = FindAnyObjectByType<PlayerController>();
-        if (combat == null) combat = FindAnyObjectByType<PlayerCombat>();
-        if (skills == null) skills = FindAnyObjectByType<PlayerSkills>();
+        if (player == null || combat == null || skills == null)
+            RefreshSceneReferences();
+
+        DetectPortalTouch();
 
         if (player != null && player.IsGrounded)
             airSlashUsedInAir = false;
@@ -162,6 +232,29 @@ public class GameSoundController : MonoBehaviour
         DetectPlayerEvents();
         DetectCombatEvents();
         DetectSkillAndTimeStopEvents();
+    }
+
+    void DetectPortalTouch()
+    {
+        if (player == null || portalSoundPlayedForCurrentTransit) return;
+
+        Collider2D playerCol = player.GetComponent<Collider2D>();
+        if (playerCol == null) return;
+
+        SceneExit[] exits = FindObjectsByType<SceneExit>(FindObjectsSortMode.None);
+        foreach (SceneExit exit in exits)
+        {
+            if (exit == null || !exit.isActiveAndEnabled) continue;
+            Collider2D exitCol = exit.GetComponent<Collider2D>();
+            if (exitCol == null) continue;
+
+            if (playerCol.bounds.Intersects(exitCol.bounds))
+            {
+                portalSoundPlayedForCurrentTransit = true;
+                PlayClip(mapTransitionClip, worldSource, 1f, false);
+                break;
+            }
+        }
     }
 
     void UpdateBacksoundState()
@@ -306,7 +399,6 @@ public class GameSoundController : MonoBehaviour
         }
         else
         {
-            // Di udara: hanya bunyikan Air Slash sekali saat serangan udara dimulai
             if (attackStarted && !airSlashUsedInAir && !player.IsDead && !player.IsDashing && !player.IsSkillLocked)
             {
                 TriggerAirSlashSound();
@@ -416,6 +508,7 @@ public class GameSoundController : MonoBehaviour
         return minDist;
     }
 
+    public void PlayMapTransition() => PlayClip(mapTransitionClip, worldSource, 1f, false);
     public void PlayJump() => PlayClip(jumpClip);
     public void PlayDash() => PlayClip(dashClip);
     public void PlayHurt() => PlayClip(hurtClip);
@@ -427,14 +520,14 @@ public class GameSoundController : MonoBehaviour
     public void PlayTimePlatform() => PlayClip(timePlatformClip);
     public void PlayEnemyContactHit() => PlayClip(enemyContactHitClip, worldSource);
 
-    void PlayClip(AudioClip clip, AudioSource source = null, float volumeScale = 1f)
+    void PlayClip(AudioClip clip, AudioSource source = null, float volumeScale = 1f, bool randomizePitch = true)
     {
         if (clip == null) return;
         AudioSource targetSource = source != null ? source : sfxSource;
         if (targetSource == null) return;
 
         float prevPitch = targetSource.pitch;
-        targetSource.pitch = 1f + Random.Range(-pitchRandomness, pitchRandomness);
+        targetSource.pitch = randomizePitch ? (1f + Random.Range(-pitchRandomness, pitchRandomness)) : 1f;
         targetSource.PlayOneShot(clip, defaultVolume * volumeScale);
         targetSource.pitch = prevPitch;
     }
